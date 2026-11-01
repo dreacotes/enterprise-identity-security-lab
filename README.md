@@ -62,3 +62,9 @@ Los recursos están definidos en memoria; no hay una base de datos.
 - No module named: comprueba que instalaste las dependencias en .venv.
 - Error loading ASGI app: ejecuta el servidor desde la carpeta que contiene main.py.
 - Puerto 8000 ocupado: detén el servidor anterior o utiliza --port 8001.
+
+## Verificación de instalación
+
+Se creó un segundo entorno virtual desde cero y se instalaron las
+dependencias desde requirements.txt. Las cinco pruebas pasaron
+correctamente en ese entorno.
