@@ -10,7 +10,8 @@ automated tests, and GitHub Actions.
 - Five automated tests using Pytest.
 - Continuous integration using GitHub Actions.
 - Dependency installation verified in a separate virtual environment.
-- Authentication, Docker, and automated deployment are planned.
+- Docker image built and verified locally, running as a non-root user.
+- Authentication and automated deployment are planned.
 
 The API does not yet implement authentication or authorization.
 
@@ -38,6 +39,36 @@ py -3.15 -m venv .venv
 - Health endpoint: http://127.0.0.1:8000/health
 - Interactive API documentation: http://127.0.0.1:8000/docs
 - Stop the server: Ctrl + C
+
+## Run with Docker
+
+Requires Docker Desktop running with Linux containers.
+
+Build the image from the project directory:
+
+```powershell
+docker build -t enterprise-identity-api:local .
+```
+
+Start the container:
+
+```powershell
+docker run --rm --name identity-api -p 127.0.0.1:8000:8000 enterprise-identity-api:local
+```
+
+Open http://127.0.0.1:8000/health or http://127.0.0.1:8000/docs.
+
+The application runs as a non-root user. The published port is bound
+to the local computer only.
+
+Stop the container from another terminal:
+
+```powershell
+docker stop identity-api
+```
+
+The container is removed when stopped; the image remains available.
+Rebuild the image after changing application code or dependencies.
 
 ## Run the Tests
 
