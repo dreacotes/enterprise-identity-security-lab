@@ -4,7 +4,7 @@ app = FastAPI(title="Enterprise Identity Security Lab")
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "error"}
 
 resources = {
     1: {"id": 1, "name": "Identity security lab"},
