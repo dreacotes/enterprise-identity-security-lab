@@ -1,53 +1,57 @@
 # Enterprise Identity Security Lab
 
-Proyecto de aprendizaje orientado a DevSecOps: una API con Python,
-FastAPI y pruebas automatizadas.
+A hands-on DevSecOps learning project built with Python, FastAPI,
+automated tests, and GitHub Actions.
 
-## Estado actual
+## Current Status
 
-- GET /health: comprueba que la aplicación responde.
-- GET /resources/{resource_id}: consulta un recurso de ejemplo en memoria.
-- Cinco pruebas automatizadas con Pytest.
-- Autenticación, Docker y GitHub Actions pendientes.
+- GET /health: confirms that the application responds.
+- GET /resources/{resource_id}: retrieves an in-memory sample resource.
+- Five automated tests using Pytest.
+- Continuous integration using GitHub Actions.
+- Dependency installation verified in a separate virtual environment.
+- Authentication, Docker, and automated deployment are planned.
 
-La API todavía no implementa autenticación ni autorización.
+The API does not yet implement authentication or authorization.
 
-## Requisitos
+## Requirements
 
-- Windows con PowerShell
-- Python 3.15 (entorno utilizado: 3.15.2)
+- Windows with PowerShell
+- Python 3.15 (tested with 3.15.2)
 - Git
 
-## Preparar el entorno
+## Set Up the Environment
 
-Desde la carpeta del proyecto:
+From the project directory:
 
 ```powershell
 py -3.15 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-## Ejecutar la API localmente
+## Run the API Locally
 
 ```powershell
 .\.venv\Scripts\python.exe -m uvicorn main:app --reload
 ```
 
-- API: http://127.0.0.1:8000/health
-- Documentación interactiva: http://127.0.0.1:8000/docs
-- Detener el servidor: Ctrl + C
+- Health endpoint: http://127.0.0.1:8000/health
+- Interactive API documentation: http://127.0.0.1:8000/docs
+- Stop the server: Ctrl + C
 
-## Ejecutar las pruebas
+## Run the Tests
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -v
 ```
 
-Resultado esperado: cinco pruebas aprobadas.
+Expected result: five passing tests.
 
-## Comportamiento esperado
+The tests use TestClient, so Uvicorn does not need to be running.
 
-| Petición | Código HTTP |
+## Expected Behavior
+
+| Request | HTTP Status Code |
 |---|---|
 | GET /health | 200 |
 | GET /resources/1 | 200 |
@@ -55,16 +59,27 @@ Resultado esperado: cinco pruebas aprobadas.
 | GET /resources/abc | 422 |
 | GET /no-existe | 404 |
 
-Los recursos están definidos en memoria; no hay una base de datos.
+Resources are stored in memory. The application does not use a database.
+
+## Continuous Integration
+
+The API tests workflow installs dependencies and runs all five tests
+with Pytest on a temporary Windows runner using Python 3.15.
+
+It runs when changes are pushed to main and when pull requests targeting
+main are opened or updated. It can also be triggered manually from Actions.
+
+A failing test causes the workflow run to fail.
+
+The workflow is defined in .github/workflows/ci.yml.
+
+## Installation Verification
+
+Dependencies were installed from requirements.txt in a separate virtual
+environment created from scratch. All five tests passed in that environment.
 
 ## Troubleshooting
 
-- No module named: comprueba que instalaste las dependencias en .venv.
-- Error loading ASGI app: ejecuta el servidor desde la carpeta que contiene main.py.
-- Puerto 8000 ocupado: detén el servidor anterior o utiliza --port 8001.
-
-## Verificación de instalación
-
-Se creó un segundo entorno virtual desde cero y se instalaron las
-dependencias desde requirements.txt. Las cinco pruebas pasaron
-correctamente en ese entorno.
+- No module named: confirm that dependencies are installed in .venv.
+- Error loading ASGI app: run the server from the directory containing main.py.
+- Port 8000 already in use: stop the previous server or use --port 8001.
