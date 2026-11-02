@@ -1,0 +1,8 @@
+.venv/
+.venv-verify/
+.git/
+__pycache__/
+.pytest_cache/
+.env
+.env.*
+.vscode/
