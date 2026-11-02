@@ -31,3 +31,16 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -v
+  
+  docker-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Build Docker image
+        run: docker build -t enterprise-identity-api:ci .
