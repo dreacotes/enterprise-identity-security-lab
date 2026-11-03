@@ -4,6 +4,8 @@ from fastapi.testclient import TestClient
 from auth import require_resources_read
 from main import app
 
+import auth
+
 client = TestClient(app)
 
 
@@ -135,3 +137,36 @@ def test_delegated_resource_access(monkeypatch, claims, expected_status):
         assert response.json() == {
             "detail": "Resources.Read.Delegated permission required"
         }
+
+
+def test_health_works_without_auth_configuration(monkeypatch):
+    monkeypatch.delenv("ENTRA_TENANT_ID", raising=False)
+    monkeypatch.delenv("ENTRA_AUDIENCE", raising=False)
+    auth.get_auth_config.cache_clear()
+
+    try:
+        response = client.get("/health")
+
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+    finally:
+        auth.get_auth_config.cache_clear()
+
+
+def test_protected_route_returns_503_without_configuration(monkeypatch):
+    monkeypatch.delenv("ENTRA_TENANT_ID", raising=False)
+    monkeypatch.delenv("ENTRA_AUDIENCE", raising=False)
+    auth.get_auth_config.cache_clear()
+
+    try:
+        response = client.get(
+            "/resources/1",
+            headers={"Authorization": "Bearer test-token"},
+        )
+
+        assert response.status_code == 503
+        assert response.json() == {
+            "detail": "Authentication service is not configured correctly"
+        }
+    finally:
+        auth.get_auth_config.cache_clear()

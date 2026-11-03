@@ -104,3 +104,38 @@ def test_invalid_claim_is_rejected(token_lab, claim_name, invalid_value):
 
     assert error.value.status_code == 401
     assert error.value.detail == "Invalid or expired access token"
+
+@pytest.mark.parametrize(
+    "variable_name",
+    ["ENTRA_TENANT_ID", "ENTRA_AUDIENCE"],
+)
+@pytest.mark.parametrize("invalid_value", [None, "", "not-a-uuid"])
+def test_invalid_auth_configuration_returns_503(
+    monkeypatch, variable_name, invalid_value
+):
+    monkeypatch.setenv(
+        "ENTRA_TENANT_ID",
+        "11111111-1111-1111-1111-111111111111",
+    )
+    monkeypatch.setenv(
+        "ENTRA_AUDIENCE",
+        "22222222-2222-2222-2222-222222222222",
+    )
+
+    if invalid_value is None:
+        monkeypatch.delenv(variable_name, raising=False)
+    else:
+        monkeypatch.setenv(variable_name, invalid_value)
+
+    auth.get_auth_config.cache_clear()
+
+    try:
+        with pytest.raises(HTTPException) as error:
+            auth.get_auth_config()
+
+        assert error.value.status_code == 503
+        assert error.value.detail == (
+            "Authentication service is not configured correctly"
+        )
+    finally:
+        auth.get_auth_config.cache_clear()
