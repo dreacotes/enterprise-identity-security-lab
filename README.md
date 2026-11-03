@@ -11,9 +11,11 @@ Microsoft Entra ID, Docker, automated tests, and GitHub Actions.
 - Interactive user sign-in using MSAL, OpenID Connect, and Authorization Code with PKCE.
 - Application authorization through the Resources.Read app role.
 - Delegated authorization through the Resources.Read.Delegated scope.
-- Nineteen automated tests covering API behavior and token validation.
+- Twenty-seven automated tests covering API behavior, token validation,
+  and authentication configuration errors.
 - GitHub Actions runs Python tests, builds the Docker image, and checks container health.
 - Docker container runs as a non-root user.
+- Controlled HTTP 503 responses for missing or malformed authentication configuration.
 - Automated deployment is planned.
 
 Resources are stored in memory. The application does not use a database.
@@ -119,12 +121,20 @@ $env:ENTRA_AUDIENCE = "<your-api-application-client-id>"
 ```
 
 Replace the placeholders with your tenant ID and API application ID.
+Both values must have a valid UUID format.
 
 ENTRA_AUDIENCE must contain the API application's client ID, without
 the api:// prefix. Do not use either client application's ID.
 
 Environment variables apply only to the current terminal and processes
 started from it. Configure them again when opening a new terminal.
+
+Authentication configuration is loaded when token validation is needed.
+Missing or malformed values produce a controlled HTTP 503 response.
+The health endpoint remains available.
+
+Restart the server or recreate the container after changing its
+authentication configuration.
 
 Never commit client secrets or access tokens.
 
@@ -285,7 +295,7 @@ the API container.
 .\.venv\Scripts\python.exe -m pytest -v
 ```
 
-Expected result: nineteen passing tests.
+Expected result: twenty-seven passing tests.
 
 Tests run without a live Entra connection or real client credentials.
 Uvicorn does not need to be running.
@@ -303,6 +313,9 @@ The suite covers:
 - Acceptance of the required delegated scope.
 - Rejection of incorrect or partially matching delegated scopes.
 - Prevention of role-based bypass when a delegated scope is incorrect.
+- HTTP 503 for missing, empty, or malformed authentication configuration.
+- Availability of the health endpoint without authentication configuration.
+- Controlled HTTP 503 from a protected route when configuration is missing.
 
 Resource behavior tests override the authorization dependency.
 Authorization tests simulate validated claims.
@@ -318,18 +331,23 @@ by these tests.
 For resource requests, an authorized token means either an application
 token with Resources.Read or a delegated token with Resources.Read.Delegated.
 
-| Request | Authentication | HTTP Status Code |
+| Request | Authentication and Configuration | HTTP Status Code |
 |---|---|---|
-| GET /health | None | 200 |
-| GET /resources/1 | Missing or invalid token | 401 |
+| GET /health | No token required, including when auth configuration is missing | 200 |
+| GET /resources/1 | Missing token | 401 |
+| GET /resources/1 | Invalid token with valid auth configuration | 401 |
 | GET /resources/1 | Valid token without the required permission | 403 |
 | GET /resources/1 | Authorized token | 200 |
 | GET /resources/999 | Authorized token | 404 |
 | GET /resources/abc | Authorized token | 422 |
-| GET /no-existe | None | 404 |
+| GET /resources/1 | Bearer credential supplied, but auth configuration is missing or malformed | 503 |
+| GET /no-existe | No token required | 404 |
 
 If the API cannot retrieve signing keys from Entra when needed,
 token verification returns HTTP 503.
+
+GET /health confirms that the application responds. It does not verify
+that Entra configuration or connectivity is ready.
 
 ## Continuous Integration
 
@@ -352,29 +370,30 @@ A failing test or build causes its job to fail.
 The workflow is defined in .github/workflows/ci.yml.
 
 CI does not perform interactive user login or use real client secrets.
-The nineteen-test update has passed locally; its CI results still need
-to be verified in the corresponding pull request.
+The configuration-error update has passed all twenty-seven tests locally;
+its CI results still need to be verified in the corresponding pull request.
 
 ## Verification History
 
 - The initial five-test version was verified in a separate virtual
   environment created from requirements.txt.
-- The fifteen-test application-authentication version passed locally
-  and in GitHub Actions.
 - Application access using a real Entra token was verified locally
   and inside Docker.
-- The nineteen-test delegated-access version passed locally.
+- The nineteen-test delegated-access version passed locally and both
+  pull request CI jobs succeeded.
 - Interactive user login and delegated API access returned HTTP 200
   against the local Python server.
-- The latest delegated-access changes have not yet been verified
-  inside a rebuilt Docker container.
+- Interactive delegated access inside Docker has not yet been
+  manually verified.
+- The current configuration-error update passed twenty-seven tests
+  in the development environment.
 
 ## Troubleshooting
 
 - No module named: confirm that dependencies are installed in .venv.
 - Error loading ASGI app: run the server from the directory containing main.py.
-- Missing environment variable: set the required variables in the same
-  terminal where you start the server or login script.
+- Missing environment variable in the login script: configure all three
+  variables in the terminal used to execute login_user.py.
 - Missing ENTRA_USER_CLIENT_ID: use the Application ID of
   enterprise-identity-user-client.
 - Port already in use: stop the previous server or select a different host port.
@@ -385,8 +404,11 @@ to be verified in the corresponding pull request.
   version, and signature.
 - HTTP 403 with an application token: check Resources.Read in roles.
 - HTTP 403 with a delegated token: check Resources.Read.Delegated in scp.
+- HTTP 503 with "Authentication service is not configured correctly":
+  set ENTRA_TENANT_ID and ENTRA_AUDIENCE to valid UUIDs in the terminal
+  used to start the API, then restart the server or recreate the container.
 - Missing configuration in Docker: set the variables in the terminal used
   for docker run, pass them with -e, and recreate the container.
-- HTTP 503 during token verification: check connectivity to the Entra
-  signing-key endpoint.
+- HTTP 503 with "Token verification service unavailable": check connectivity
+  to the Entra signing-key endpoint.
 - Old behavior in Docker: rebuild the image and recreate the container.

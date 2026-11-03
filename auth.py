@@ -11,8 +11,14 @@ from jwt.exceptions import PyJWKClientConnectionError
 
 @lru_cache
 def get_auth_config():
-    tenant_id = str(UUID(os.environ["ENTRA_TENANT_ID"]))
-    audience = str(UUID(os.environ["ENTRA_AUDIENCE"]))
+    try:
+        tenant_id = str(UUID(os.environ["ENTRA_TENANT_ID"]))
+        audience = str(UUID(os.environ["ENTRA_AUDIENCE"]))
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Authentication service is not configured correctly",
+        ) from exc    
 
     issuer = f"https://login.microsoftonline.com/{tenant_id}/v2.0"
     jwks_url = (
