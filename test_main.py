@@ -90,3 +90,48 @@ def test_resource_without_required_role_returns_403(monkeypatch):
     assert response.json() == {
         "detail": "Resources.Read permission required"
     }
+
+@pytest.mark.parametrize(
+    "claims,expected_status",
+    [
+        ({"scp": "Resources.Read.Delegated"}, 200),
+        ({"scp": "Other.Permission"}, 403),
+        ({"scp": "Resources.Read.DelegatedExtra"}, 403),
+        (
+            {
+                "scp": "Other.Permission",
+                "roles": ["Resources.Read"],
+            },
+            403,
+        ),
+    ],
+    ids=[
+        "required-scope",
+        "wrong-scope",
+        "partial-match-rejected",
+        "role-cannot-bypass-scope",
+    ],
+)
+def test_delegated_resource_access(monkeypatch, claims, expected_status):
+    def fake_validate_access_token(token):
+        assert token == "user-test-token"
+        return claims
+
+    monkeypatch.setattr(
+        "auth.validate_access_token",
+        fake_validate_access_token,
+    )
+
+    response = client.get(
+        "/resources/1",
+        headers={"Authorization": "Bearer user-test-token"},
+    )
+
+    assert response.status_code == expected_status
+
+    if expected_status == 200:
+        assert response.json()["id"] == 1
+    else:
+        assert response.json() == {
+            "detail": "Resources.Read.Delegated permission required"
+        }

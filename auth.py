@@ -81,6 +81,20 @@ def require_resources_read(
 
     claims = validate_access_token(credentials.credentials)
 
+    if "scp" in claims:
+        scopes = claims["scp"]
+
+        if (
+            not isinstance(scopes, str)
+            or "Resources.Read.Delegated" not in scopes.split()
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Resources.Read.Delegated permission required",
+            )
+
+        return claims
+
     roles = claims.get("roles", [])
     if not isinstance(roles, list) or "Resources.Read" not in roles:
         raise HTTPException(
